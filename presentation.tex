@@ -71,6 +71,14 @@ Approaches:
     \item \textsc{Manthan} -- Based on Guess-and-Repair
     \item \textsc{d4} -- Based on d-DNNF, i.e. model counting
 \end{itemize}
+\bigskip
+
+Useful for:
+\begin{itemize}
+    \item \textbf{Circuit Design}: Synthesize gates from declarative specifications.
+    \item \textbf{Program Repair}: Generate patches for buggy code.
+    \item \textbf{Proposal: Cryptographic Protocols}: Automatically generate sub-functions
+\end{itemize}
 \end{frame}
 
 \begin{frame}{Example 1}
@@ -99,22 +107,19 @@ $\varphi(x_1, x_2, y) = (x_1 \lor y) \land (x_2 \lor \neg y)$
 \bigskip
 
 Let's look at the \textbf{truth table} of \(\varphi\):
-\begin{center}
-    \begin{tabular}{|c|c|c|c|}
-        \hline
-        $x_1$ & $x_2$ & $\mathbf{y}$ & $\varphi(x_1, x_2, y)$ \\
-        \hline
-        0 & 0 & 0 & \\
-        0 & 0 & 1 & \\
-        0 & 1 & 0 & \\
-        0 & 1 & 1 & \\
-        1 & 0 & 0 & \\
-        1 & 0 & 1 & \\
-        1 & 1 & 0 & \\
-        1 & 1 & 0 & \\
-        \hline
-    \end{tabular}
-\end{center}
+
+\begin{tabular}{|c|c|c|c|}
+    \hline
+    $x_1$ & $x_2$ & $\mathbf{y}$ & $\varphi(x_1, x_2, y)$ \\
+    \hline
+    0 & 0 & \textbf{X} & F\\
+    0 & 1 & 0 & \textbf{F}\\
+    0 & 1 & 1 & T\\
+    1 & 0 & 0 & T\\
+    1 & 0 & 1 & \textbf{F}\\
+    1 & 1 & \textbf{X} & T\\
+    \hline
+\end{tabular}
 \end{frame}
 
 \begin{frame}{Example 2}
@@ -132,25 +137,33 @@ Notice:
 \textbf{Only Solution}: $y = \Psi(x_1) = \neg x_1$
 \bigskip
 
+Let's look at the \textbf{truth table} of \(\varphi\):
+\begin{tabular}{|c|c|c|}
+    \hline
+    $x_1$ & $\mathbf{y}$ & $\varphi(x_1, y)$ \\
+    \hline
+    0 & 0 & T\\
+    0 & 1 & \textbf{F}\\
+    1 & 0 & T\\
+    1 & 1 & \textbf{F}\\
+    \hline
+\end{tabular}
 \end{frame}
 
-\begin{frame}{Use Cases}
-  \textbf{Applications}:
-  \begin{itemize}
-    \item \textbf{Circuit Design}: Synthesize gates from temporal logic (e.g., \textsc{LTL}).
-    \item \textbf{Program Repair}: Generate patches from assertions.
-    \item \textbf{Quantifier Elimination}: Convert \(\exists \vec{Y}\, \varphi(\vec{X}, \vec{Y})\) to \(\varphi(\vec{X}, \vec{\Psi}(\vec{X}))\).
-  \end{itemize}
-
-  \vspace{0.3cm}
-  \textbf{Tools}:
-  \begin{itemize}
-    \item \textsc{Manthan} (ML-based synthesizer)
-    \item \textsc{BFSS} (BDD-based)
-    \item \textsc{Skolem} (SAT-solving)
-  \end{itemize}
+\begin{frame}{Basic approach: piecemeal synthesis}
+\begin{itemize}
+    \item Iteratively find Skolem functions for each variable
+    \item Start with the easiest variables
+    \item The variables already defined can be used to define the other variables
+    \item Once $y_k$ is defined, $\psi_{k+1}(\vec{x})$ can use $y_k$ as an input
 \end{frame}
-\
+
+\begin{itemize}
+    \item Start with a CNF formula \(\varphi\)
+    \item Identify variables in \(\varphi\) that are forced --``backbone''
+    \item Find all equivalent variables in \(\varphi\) via a SAT oracle
+\end{itemize}
+\end{frame}
 
 \begin{frame}{Thank you for your time!}
     Any questions?
