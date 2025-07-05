@@ -1,0 +1,159 @@
+\documentclass[aspectratio=169]{beamer}
+\usepackage{amsmath}
+\usepackage{algorithmic}
+\usepackage{fancyvrb}
+\usepackage{framed}
+\usepackage{caption}
+\usepackage{qrcode}
+\usetheme{CambridgeUS}
+\usepackage{hyperref}
+\newcommand{\bluelink}[2]{\href{#1}{\textcolor{blue}{\textbf{#2}}}}
+\usepackage{fancyvrb}
+\usepackage{listings}
+\usepackage{xcolor}
+
+
+\title[Func. Synthesis]{
+Boolean Functional Synthesis and its possible application to Cryptography}
+\author[Soos]{Mate Soos}
+\institute[Argot]{\large Argot Collective (\url{https://argot.org})}
+\date{8th of July 2025}
+\subtitle{COSIC, KU Leuven}
+
+\begin{document}
+\begin{frame}
+    \titlepage
+\end{frame}
+
+\begin{frame}{A bit about myself}
+\begin{itemize}
+\item PhD from INRIA Grenoble, France
+\item Part-time research at Kuldeep Meel's group, authored::
+    \begin{itemize}
+        \item \textbf{CryptoMiniSat} -- SAT solver with XORs
+        \item \textbf{Ganak\&ApproxMC} -- CNF counters
+        \item \textbf{Arjun} -- CNF simplifier, also doing functional synthesis
+        \item \textbf{Bosphorus} -- ANF simplifier
+        \item \textbf{Pepin} -- DNF counter
+    \end{itemize}
+\item Worked in IT Security for 10+ years: hacking,
+    threat modelling, risk management
+\item Working at Ethereum Foundation, now Argot Collective for the past $\approx3$
+    years: \textbf{hevm}
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Outline}
+    \tableofcontents
+\end{frame}
+
+\section{Boolean Functional Synthesis}
+% Slide 1: High-Level Overview
+\begin{frame}{High-Level Overview}
+  \textbf{Boolean Functional Synthesis}:
+  \begin{itemize}
+    \item Automatically \textbf{constructs Boolean functions} from logical specifications.
+    \item Key problem: Given \(\exists \vec{Y}\, \varphi(\vec{X}, \vec{Y})\),
+        find Skolem functions \(\vec{\Psi}(\vec{X})\) such that:
+        \[
+            \forall \vec{X}\, \left( \exists \vec{Y}\, \varphi(\vec{X}, \vec{Y}) \equiv \varphi(\vec{X}, \vec{\Psi}(\vec{X})) \right)
+        \]
+    \item Typically, \(\varphi\) is a CNF formula
+    \item Useful for: circuit design, program repair, quantifier elimination, etc.
+\end{itemize}
+\bigskip
+
+Approaches:
+\begin{itemize}
+    \item \textsc{CaDiBack} -- Calculate fixed points of \(\varphi\)
+    \item \textsc{Oracle from SharpSAT-TD} -- Find all equivalent variables in \(\varphi\)
+    \item \textsc{Unique} -- Based on proofs + interpolation
+    \item \textsc{Manthan} -- Based on Guess-and-Repair
+    \item \textsc{d4} -- Based on d-DNNF, i.e. model counting
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Example 1}
+$\varphi(x_1, x_2, y) = (x_1 \lor y) \land (x_2 \lor \neg y)$
+\bigskip
+
+Notice:
+\begin{itemize}
+    \item When $x_1 = 0$, $y$ must be $1$
+    \item When $x_2 = 0$, $y$ must be $0$
+    \item When $x_1 = 0$, and $x_2 = 0$, $\varphi$ is UNSAT, so $y$ can be anything $\rightarrow$ it's \textbf{not fully defined}
+    \item When $x_1 = 1$, and $x_2 = 1$, then $\varphi = T$ irrespective of $y$ $\rightarrow$ it's \textbf{not fully defined}
+\end{itemize}
+\bigskip
+
+\textbf{One Solution}: $y = \Psi(x_1, x_2) = \neg x_1 \lor x_2$
+\bigskip
+
+This happens to give $y=1$ when both are 0, and $y=1$ when both are 1. There
+are 4 skolem functions that satisfy this formula. We could have picked
+any.
+\end{frame}
+
+\begin{frame}{Example 1 (cont.)}
+$\varphi(x_1, x_2, y) = (x_1 \lor y) \land (x_2 \lor \neg y)$
+\bigskip
+
+Let's look at the \textbf{truth table} of \(\varphi\):
+\begin{center}
+    \begin{tabular}{|c|c|c|c|}
+        \hline
+        $x_1$ & $x_2$ & $\mathbf{y}$ & $\varphi(x_1, x_2, y)$ \\
+        \hline
+        0 & 0 & 0 & \\
+        0 & 0 & 1 & \\
+        0 & 1 & 0 & \\
+        0 & 1 & 1 & \\
+        1 & 0 & 0 & \\
+        1 & 0 & 1 & \\
+        1 & 1 & 0 & \\
+        1 & 1 & 0 & \\
+        \hline
+    \end{tabular}
+\end{center}
+\end{frame}
+
+\begin{frame}{Example 2}
+$\varphi(x_1, y) = (x_1 \lor y) \land (\neg x_1 \lor \neg y)$
+\bigskip
+
+Notice:
+\begin{itemize}
+    \item When $x_1 = 0$, $y$ must be $0$
+    \item When $x_1 = 1$, $y$ must be $1$
+    \item \textbf{Fully defined}: $y$ is uniquely determined by $x_1$
+\end{itemize}
+\bigskip
+
+\textbf{Only Solution}: $y = \Psi(x_1) = \neg x_1$
+\bigskip
+
+\end{frame}
+
+\begin{frame}{Use Cases}
+  \textbf{Applications}:
+  \begin{itemize}
+    \item \textbf{Circuit Design}: Synthesize gates from temporal logic (e.g., \textsc{LTL}).
+    \item \textbf{Program Repair}: Generate patches from assertions.
+    \item \textbf{Quantifier Elimination}: Convert \(\exists \vec{Y}\, \varphi(\vec{X}, \vec{Y})\) to \(\varphi(\vec{X}, \vec{\Psi}(\vec{X}))\).
+  \end{itemize}
+
+  \vspace{0.3cm}
+  \textbf{Tools}:
+  \begin{itemize}
+    \item \textsc{Manthan} (ML-based synthesizer)
+    \item \textsc{BFSS} (BDD-based)
+    \item \textsc{Skolem} (SAT-solving)
+  \end{itemize}
+\end{frame}
+\
+
+\begin{frame}{Thank you for your time!}
+    Any questions?
+\end{frame}
+
+\end{document}
