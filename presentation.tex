@@ -74,11 +74,29 @@ Approaches:
 \end{frame}
 
 \begin{frame}{Motivation}
-Useful for:
+Currently used for:
 \begin{itemize}
     \item \textbf{Circuit Design}: Synthesize gates from declarative specifications.
     \item \textbf{Program Repair}: Generate patches for buggy code.
-    \item \textbf{Proposal: Cryptographic Protocols}: Automatically generate sub-functions
+\end{itemize}
+\bigskip
+
+\textbf{Proposal: Cryptographic Use-cases}:
+\begin{itemize}
+    \item Using a SAT solver is classic for breaking a \textbf{single}
+        execution of a system, e.g. Mifare
+    \item But we could synthesize a function for \textbf{all} inputs $C, P$
+        that outputs the key $K=\Psi(C, P)$
+    \item This has serious advantages:
+        \begin{itemize}
+            \item It is worthwhile spending ~1M CPU hours to find $\psi$
+            \item Recovering $\psi$, if $\psi$ is fully determined,
+                can be done in a highly parallel way (i.e. using a cluster)
+            \item It can be done to reverse certain parts of a system, not the
+                whole thing (i.e. not $K$ directly)
+            \item It can be used to generate e.g. inputs with specific properties,
+                described in a declarative way
+        \end{itemize}
 \end{itemize}
 \end{frame}
 
