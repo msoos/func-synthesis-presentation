@@ -66,7 +66,7 @@ Boolean Functional Synthesis and its possible application to Cryptography}
 Approaches:
 \begin{itemize}
     \item \textsc{CaDiBack} -- Calculate fixed points of \(\varphi\)
-    \item \textsc{Oracle from SharpSAT-TD} -- Find all equivalent variables in \(\varphi\)
+    \item \textsc{Oracle}from \textsc{SharpSAT-TD} -- Find all equivalent variables in \(\varphi\)
     \item \textsc{Unique} -- Based on proofs + interpolation
     \item \textsc{Manthan} -- Based on Guess-and-Repair
     \item \textsc{d4} -- Based on d-DNNF, i.e. model counting
@@ -150,19 +150,63 @@ Let's look at the \textbf{truth table} of \(\varphi\):
 \end{tabular}
 \end{frame}
 
-\begin{frame}{Basic approach: piecemeal synthesis}
+\begin{frame}{Basic approach: Piecemeal synthesis}
 \begin{itemize}
     \item Iteratively find Skolem functions for each variable
-    \item Start with the easiest variables
+    \item Start with the easiest variable, $y_1$, define purely in terms of $\vec{x}$
     \item The variables already defined can be used to define the other variables
-    \item Once $y_k$ is defined, $\psi_{k+1}(\vec{x})$ can use $y_k$ as an input
+    \item Once $y_1, \ldots y_k$ is defined, $\psi_{k+1}(\vec{x})$ can use $y_1,\ldots y_k$ as an input:
+        $y_k=\psi_{k+1}(\vec{x}) =
+        \psi_{k+1}(\vec{x}, \psi_1, \ldots \psi_k) =
+        \psi_{k+1}(\vec{x}, y_1, \ldots y_k)$
+\end{itemize}
+\bigskip
+
 \end{frame}
 
+\begin{frame}{How-To: Fully Defined Variables}
 \begin{itemize}
-    \item Start with a CNF formula \(\varphi\)
-    \item Identify variables in \(\varphi\) that are forced --``backbone''
-    \item Find all equivalent variables in \(\varphi\) via a SAT oracle
+    \item Start with a CNF formula $ \varphi$
+    \item Identify variables that are forced via backbone detection
+        via \textsc{CadiBack}
+    \item Identify all equivalent variables via \textsc{Oracle}
+        in \textsc{SharpSAT-TD}
+    \item Identify fully defined variables via Padoa's Theorem:
+        \begin{itemize}
+        \item Do quick query to check if $y_k$ is fully defined by $(\vec{x}, \vec{y} \backslash y_k)$
+        \item Use \textsc{CaDiCaL} to produce proof of UNSAT
+        \item Use McMillan paper's interpolant generation to extract definition
+            circuit
+        \end{itemize}
 \end{itemize}
+\bigskip
+Avoid cycles above, i.e. it's not good if $y_1$ is defined by $y_2$, and $y_2$
+is defined by $y_1$.
+\bigskip
+
+Now everything that could be fully defined, is defined. It turns out, this is
+the easy part.
+\end{frame}
+
+
+\begin{frame}{How-To: Not Fully Defined Variables}
+There are a number of ways to do this:
+\begin{itemize}
+    \item Guess-and-Repair: \textsc{Manthan} algorithm
+        \begin{enumerate}
+            \item Get samples, run ML to create decision tree
+            \item Compute counterexample, minimize it
+            \item Add repair constraints
+            \item Goto 2
+        \end{enumerate}
+    \item 2QBF-based method: \textsc{CADET}, using incremental determinization
+    \item BDD-based method: \textsc{RSynth}/\textsc{CegarSkolem} via \textsc{CUDD}
+    \item d-DNNF-based method: \textsc{d4}
+    \item Force-eliminate variable (last resort, exponential)
+\end{itemize}
+\bigskip
+
+It's still the wild-wild west. Unknown what's best. Likely a combination: say, try guess-and-repair with some time-out for each variable, do the remaining variables via d-DNNF
 \end{frame}
 
 \begin{frame}{Thank you for your time!}
