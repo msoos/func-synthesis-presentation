@@ -59,20 +59,21 @@ Boolean Functional Synthesis and its possible application to Cryptography}
             \forall \vec{X}\, \left( \exists \vec{Y}\, \varphi(\vec{X}, \vec{Y}) \equiv \varphi(\vec{X}, \vec{\Psi}(\vec{X})) \right)
         \]
     \item Typically, \(\varphi\) is a CNF formula
-    \item Useful for: circuit design, program repair, quantifier elimination, etc.
 \end{itemize}
 \bigskip
 
 Approaches:
 \begin{itemize}
-    \item \textsc{CaDiBack} -- Calculate fixed points of \(\varphi\)
+    \item \textsc{CadiBack} -- Calculate fixed points of \(\varphi\)
     \item \textsc{Oracle}from \textsc{SharpSAT-TD} -- Find all equivalent variables in \(\varphi\)
     \item \textsc{Unique} -- Based on proofs + interpolation
     \item \textsc{Manthan} -- Based on Guess-and-Repair
     \item \textsc{d4} -- Based on d-DNNF, i.e. model counting
 \end{itemize}
 \bigskip
+\end{frame}
 
+\begin{frame}{Motivation}
 Useful for:
 \begin{itemize}
     \item \textbf{Circuit Design}: Synthesize gates from declarative specifications.
@@ -200,15 +201,13 @@ There are a number of ways to do this:
             \item Goto 2
         \end{enumerate}
     \item 2QBF-based method: \textsc{CADET}, using incremental determinization
-    \item BDD-based method: \textsc{RSynth}/\textsc{CegarSkolem} via \textsc{CUDD}
+    \item BDD-based method: \textsc{RSynth} via \textsc{CUDD}
     \item d-DNNF-based method: \textsc{d4}
     \item Force-eliminate variable (last resort, exponential)
 \end{itemize}
 \bigskip
 
-It's still the wild-wild west. Unknown what's best. Likely a combination: say,
-try guess-and-repair with some time-out for each variable, do the remaining
-variables via d-DNNF
+It's still early stage research: unknown what's best. Likely a combination.
 \end{frame}
 
 \begin{frame}{Thank you for your time!}
