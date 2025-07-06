@@ -43,9 +43,9 @@ Boolean Functional Synthesis and its possible application to Cryptography}
 \end{itemize}
 \end{frame}
 
-\begin{frame}{Outline}
-    \tableofcontents
-\end{frame}
+% \begin{frame}{Outline}
+%     \tableofcontents
+% \end{frame}
 
 \section{Boolean Functional Synthesis}
 % Slide 1: High-Level Overview
@@ -65,10 +65,10 @@ Boolean Functional Synthesis and its possible application to Cryptography}
 Approaches:
 \begin{itemize}
     \item \textsc{CadiBack} -- Calculate fixed points of \(\varphi\)
-    \item \textsc{Oracle}from \textsc{SharpSAT-TD} -- Find all equivalent variables in \(\varphi\)
+    \item \textsc{Oracle} from \textsc{SharpSAT-TD} -- Find all equivalent variables in \(\varphi\)
     \item \textsc{Unique} -- Based on proofs + interpolation
     \item \textsc{Manthan} -- Based on Guess-and-Repair
-    \item \textsc{d4} -- Based on d-DNNF, i.e. model counting
+    \item \textsc{d4/Ganak} -- Based on model counting
 \end{itemize}
 \bigskip
 \end{frame}
@@ -77,26 +77,9 @@ Approaches:
 Currently used for:
 \begin{itemize}
     \item \textbf{Circuit Design}: Synthesize gates from declarative specifications.
-    \item \textbf{Program Repair}: Generate patches for buggy code.
-\end{itemize}
-\bigskip
-
-\textbf{Proposal: Cryptographic Use-cases}:
-\begin{itemize}
-    \item Using a SAT solver is classic for breaking a \textbf{single}
-        execution of a system, e.g. Mifare
-    \item But we could synthesize a function for \textbf{all} inputs $C, P$
-        that outputs the key $K=\Psi(C, P)$
-    \item This has serious advantages:
-        \begin{itemize}
-            \item It is worthwhile spending ~1M CPU hours to find $\psi$
-            \item Recovering $\psi$, if $\psi$ is fully determined,
-                can be done in a highly parallel way (i.e. using a cluster)
-            \item It can be done to reverse certain parts of a system, not the
-                whole thing (i.e. not $K$ directly)
-            \item It can be used to generate e.g. inputs with specific properties,
-                described in a declarative way
-        \end{itemize}
+    \item \textbf{Program Synthesis\&Repair}: Generate code/patches for buggy code.
+    \item \textbf{Strategy Synthesis} for Games: Find winning strategies
+    \item \textbf{Cryptography}: Will get back to this later
 \end{itemize}
 \end{frame}
 
@@ -187,16 +170,23 @@ Let's look at the \textbf{truth table} of \(\varphi\):
 \begin{itemize}
     \item Start with a CNF formula $ \varphi$
     \item Identify variables that are forced via backbone detection
-        via \textsc{CadiBack}
-    \item Identify all equivalent variables via \textsc{Oracle}
+        using \textsc{CadiBack}
+    \item Identify all equivalent variables using \textsc{Oracle}
         in \textsc{SharpSAT-TD}
-    \item Identify fully defined variables via Padoa's Theorem:
-        \begin{itemize}
-        \item Do quick query to check if $y_k$ is fully defined by $(\vec{x}, \vec{y} \backslash y_k)$
-        \item Use \textsc{CaDiCaL} to produce proof of UNSAT
-        \item Use McMillan paper's interpolant generation to extract definition
-            circuit
-        \end{itemize}
+    \item Identify fully defined variables and define them.
+\end{itemize}
+
+\bigskip
+\begin{itemize}
+    \item Do quick query to check if $y_k$ is fully defined by $(\vec{x},
+        \vec{y} \backslash y_k)$
+    \item Make copy of $\varphi$, call it $\varphi'$ that has copy of
+        $\vec{x}$, call it $\vec{x'}$ and $\vec{y}$, call it $\vec{y'}$.
+    \item Force $\vec{x} = \vec{x'}$, force $y_k = \neg {y'}_k$
+    \item If UNSAT, then $y_k$ is fully determined by $\vec{x}$.
+    \item Use \textsc{CaDiCaL} to produce proof of UNSAT
+    \item Use McMillan paper's interpolant generation to extract circuit for
+        $y_k$
 \end{itemize}
 \bigskip
 Avoid cycles above, i.e. it's not good if $y_1$ is defined by $y_2$, and $y_2$
@@ -220,12 +210,63 @@ There are a number of ways to do this:
         \end{enumerate}
     \item 2QBF-based method: \textsc{CADET}, using incremental determinization
     \item BDD-based method: \textsc{RSynth} via \textsc{CUDD}
-    \item d-DNNF-based method: \textsc{d4}
+    \item d-DNNF-based method: \textsc{d4}, \textsc{Ganak}
     \item Force-eliminate variable (last resort, exponential)
 \end{itemize}
 \bigskip
 
 It's still early stage research: unknown what's best. Likely a combination.
+\end{frame}
+
+\begin{frame}{Cryptography: direct use}
+Synthesize a function for \textbf{all} inputs $C, P$ s.t. $K=\Psi(C, P)$:
+\begin{itemize}
+    \item Worthwhile spending ~1M CPU hours to find $\psi$
+    \item If $\psi$ is fully determined, recovering $\psi$
+        can be done via parallel UNSAT solving
+    \item UNSAT is usually \emph{faster} with more data/informaton, unlike SAT
+    \item So we should be able to take advantage of collecting multiple $(C,
+        P)$ pairs
+    \item We can escape the key expansion circuit: make the expanded key the
+        unknown. Requires more (P, C) pairs, but that's not a problem
+    \item Many other ideas are possible -- we implemented some
+\end{itemize}
+\bigskip
+
+Doing the above for AES is a very long shot, but for less complicated systems,
+this direct approach should work well.
+
+Also, this proof generation is now mandatory for the SAT competition,
+all modern SAT solvers emit one. So as SAT technology progresses,
+this should also improve.
+\end{frame}
+
+\begin{frame}{Cryptography: indirect use}
+\begin{itemize}
+    \item Can be used to generate inputs with specific properties,
+        described in a declarative way
+    \item Can be used to reverse certain parts of a cipher, not the
+        whole thing
+    \item Can be used to recover sub-functions of a black-box circuit
+        based on observed behaviour. Once it's fully determined,
+        the Padoa query will be UNSAT, and we can recover $\psi$
+        from the proof.
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]{Run}
+\begin{verbatim}
+-> build cadical from https://github.com/arminbiere/cadical
+$ git clone https://github.com/chriseth/synthesizer
+$ cd synthesizer
+-> copy cadical from where you built it to here
+-> write this to "a.cnf" (this is a gate of v1 OR v2 = v3):
+p cnf 3 3
+-1 3 0
+-2 3 0
+1 2 -3 0
+$ cargo run --release -- ./cadical a.cnf 1,2 3 b.aig
+\end{verbatim}
 \end{frame}
 
 \begin{frame}{Thank you for your time!}
