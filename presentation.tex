@@ -11,6 +11,7 @@
 \usepackage{fancyvrb}
 \usepackage{listings}
 \usepackage{xcolor}
+\usepackage{tikz}
 
 
 \title[Func. Synthesis]{
@@ -52,35 +53,98 @@ Boolean Functional Synthesis and its possible application to Cryptography}
 \begin{frame}{High-Level Overview}
   \textbf{Boolean Functional Synthesis}:
   \begin{itemize}
-    \item Automatically \textbf{constructs Boolean functions} from logical specifications.
-    \item Key problem: Given \(\exists \vec{Y}\, \varphi(\vec{X}, \vec{Y})\),
-        find Skolem functions \(\vec{\Psi}(\vec{X})\) such that:
+    \item Automatically \textbf{constructs Boolean functions} from logical
+        specifications.
+    \item Given \(\exists \vec{Y}\, \varphi(\vec{X}, \vec{Y})\),
+        find Skolem functions \(\vec{\psi}(\vec{X})\) such that:
         \[
-            \forall \vec{X}\, \left( \exists \vec{Y}\, \varphi(\vec{X}, \vec{Y}) \equiv \varphi(\vec{X}, \vec{\Psi}(\vec{X})) \right)
+            \forall \vec{X}\, \left( \exists \vec{Y}\, \varphi(\vec{X}, \vec{Y}) \equiv \varphi(\vec{X}, \vec{\psi}(\vec{X})) \right)
         \]
-    \item Typically, \(\varphi\) is a CNF formula
+    \item $\psi$ is also called a Skolem function, and represented as
+        $\psi(\vec{X})_1 = y_1, \psi(\vec{X})_2 = y_2, \ldots$
+    \item Typically, $\varphi$ is a CNF formula, e.g. $(x_1 \lor y) \land (x_2
+        \lor \neg y)$
+    \item Typically, we want $\psi$ as an And-Inverter Graph (AIG)
+    \item Often, $\psi$ is not fully determined. Above, $x_1 = x_2 = 0
+        \rightarrow y$ can be anything, $\varphi$ is still $\perp$
+    \item Sometimes, we want $\psi$ to have specific properties: small, minimal
+        w.r.t to some quantity, etc.
+\end{itemize}
+% Approaches:
+% \begin{itemize}
+%     \item \textsc{CadiBack} -- Calculate fixed points of \(\varphi\)
+%     \item \textsc{Oracle} from \textsc{SharpSAT-TD} -- Find all equivalent variables in \(\varphi\)
+%     \item \textsc{Unique} -- Based on proofs + interpolation
+%     \item \textsc{Manthan} -- Based on Guess-and-Repair
+%     \item \textsc{d4/Ganak} -- Based on model counting
+% \end{itemize}
+% \bigskip
+\end{frame}
+
+\begin{frame}{Classic example: Multiplier Circuit}
+\begin{columns}
+\begin{column}{0.48\textwidth}
+        \[
+            \forall \vec{X}\, \left( \exists \vec{Y}\, \varphi(\vec{X}, \vec{Y}) \equiv \varphi(\vec{X}, \vec{\psi}(\vec{X})) \right)
+        \]
+\begin{itemize}
+    \item Relational/decarative spec: $A * B = C$
+    \item $X$ is $C$
+    \item $Y$ is $(A, B)$
+    \item Hence, $\psi(C) = (A, B)$
+    \item Notice: no solution if $C$ is prime
+    \item Solves the factorization problem
+\end{itemize}
+\end{column}
+%%%
+\begin{column}{0.48\textwidth}
+    \begin{center}
+    \includegraphics[scale=1.2]{mult.pdf}
+    \end{center}
+\end{column}
+\end{columns}
+
+\end{frame}
+
+\begin{frame}{AIG}
+\begin{itemize}
+    \item \textbf{And-Inverter Graph} (AIG) is a directed acyclic graph
+        representing a Boolean function.
+    \item Nodes represent \textbf{AND} operations, edges represent
+        input with or without \textbf{inversion}.
+    \item Many operations on AIGs are quite cheap
+    \item Tooling available to manipulate and check: \textsc{AIGER, ABC, Boolector}
 \end{itemize}
 \bigskip
 
-Approaches:
-\begin{itemize}
-    \item \textsc{CadiBack} -- Calculate fixed points of \(\varphi\)
-    \item \textsc{Oracle} from \textsc{SharpSAT-TD} -- Find all equivalent variables in \(\varphi\)
-    \item \textsc{Unique} -- Based on proofs + interpolation
-    \item \textsc{Manthan} -- Based on Guess-and-Repair
-    \item \textsc{d4/Ganak} -- Based on model counting
-\end{itemize}
-\bigskip
+\begin{center}
+\includegraphics[width=0.5\textwidth]{And-inverter-graph.pdf}
+\end{center}
 \end{frame}
 
 \begin{frame}{Motivation}
 Currently used for:
 \begin{itemize}
     \item \textbf{Circuit Design}: Synthesize gates from declarative specifications.
-    \item \textbf{Program Synthesis\&Repair}: Generate code/patches for buggy code.
+    \item \textbf{Program Synth.\&Repair}: Generate code/patches for buggy code.
+    \item \textbf{Reactive Controller Synth.}: Generate controllers
+        that respond to complex/adversarial environments.
     \item \textbf{Strategy Synthesis} for Games: Find winning strategies
-    \item \textbf{Cryptography}: Will get back to this later
+    \item \textbf{Quantifier Elimination}: Remove existential quantifiers from
+        formulas.
 \end{itemize}
+\bigskip
+
+Not useful for:
+\begin{itemize}
+    \item If we want a \emph{single (counter)example}: just run a SAT solver
+    \item If we want a (uniform) set of \emph{samples}: just run a (uniform) sampler
+    \item If we want to check correctness of a function wrt a specification:
+        just run a SAT solver (proving equivalence is a single SAT query)
+\end{itemize}
+\bigskip
+
+Could be used for \textbf{Cryptography}. Will get back to this later.
 \end{frame}
 
 \begin{frame}{Example 1}
@@ -152,7 +216,20 @@ Let's look at the \textbf{truth table} of \(\varphi\):
 \end{tabular}
 \end{frame}
 
-\begin{frame}{Basic approach: Piecemeal synthesis}
+\begin{frame}{Approaches}
+\begin{itemize}
+    \item BFSS: backbone detection, \emph{unate} detection,
+        Cex-guided refinement of $\psi$.
+    \item Guess-and-Repair: \textsc{Manthan} algorithm
+    \item 2QBF-based method: \textsc{CADET}, using incremental determinization
+    \item BDD-based method: \textsc{RSynth} via \textsc{CUDD}
+    \item Interpolation-based: \textsc{Unique}, using UNSAT proofs
+    \item d-DNNF-based method: \textsc{d4}, \textsc{Ganak}
+    \item Force-eliminate variable (last resort, exponential)
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Our approach: Piecemeal synthesis}
 \begin{itemize}
     \item Iteratively find Skolem functions for each variable
     \item Start with the easiest variable, $y_1$, define purely in terms of $\vec{x}$
@@ -166,7 +243,7 @@ Let's look at the \textbf{truth table} of \(\varphi\):
 
 \end{frame}
 
-\begin{frame}{How-To: Fully Defined Variables}
+\begin{frame}{Fully Defined Variables}
 \begin{itemize}
     \item Start with a CNF formula $ \varphi$
     \item Identify variables that are forced via backbone detection
@@ -197,8 +274,7 @@ Now everything that could be fully defined, is defined. It turns out, this is
 the easy part.
 \end{frame}
 
-
-\begin{frame}{How-To: Not Fully Defined Variables}
+\begin{frame}{Not Fully Defined Variables}
 There are a number of ways to do this:
 \begin{itemize}
     \item Guess-and-Repair: \textsc{Manthan} algorithm
@@ -208,10 +284,7 @@ There are a number of ways to do this:
             \item Add repair constraints
             \item Goto 2
         \end{enumerate}
-    \item 2QBF-based method: \textsc{CADET}, using incremental determinization
-    \item BDD-based method: \textsc{RSynth} via \textsc{CUDD}
     \item d-DNNF-based method: \textsc{d4}, \textsc{Ganak}
-    \item Force-eliminate variable (last resort, exponential)
 \end{itemize}
 \bigskip
 
@@ -231,10 +304,11 @@ Synthesize a function for \textbf{all} inputs $C, P$ s.t. $K=\Psi(C, P)$:
         unknown. Requires more (P, C) pairs, but that's not a problem
     \item Many other ideas are possible -- we implemented some
 \end{itemize}
-\bigskip
+\smallskip
 
 Doing the above for AES is a very long shot, but for less complicated systems,
 this direct approach should work well.
+\smallskip
 
 Also, this proof generation is now mandatory for the SAT competition,
 all modern SAT solvers emit one. So as SAT technology progresses,
