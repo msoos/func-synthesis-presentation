@@ -63,7 +63,8 @@ Boolean Functional Synthesis and its possible application to Cryptography}
     \item $\psi$ is also called a Skolem function, and represented as
         $\psi(\vec{X})_1 = y_1, \psi(\vec{X})_2 = y_2, \ldots$
     \item Typically, $\varphi$ is a CNF formula, e.g. $(x_1 \lor y) \land (x_2
-        \lor \neg y)$
+        \lor \neg y)$. Mostly because it's easy to convert other specifications
+        to CNF.
     \item Typically, we want $\psi$ as an And-Inverter Graph (AIG)
     \item Often, $\psi$ is not fully determined. Above, $x_1 = x_2 = 0
         \rightarrow y$ can be anything, $\varphi$ is still $\perp$
@@ -103,10 +104,11 @@ Boolean Functional Synthesis and its possible application to Cryptography}
     \end{center}
 \end{column}
 \end{columns}
-
 \end{frame}
 
-\begin{frame}{AIG}
+\begin{frame}{Output: AIG}
+\begin{columns}
+\begin{column}{0.68\textwidth}
 \begin{itemize}
     \item \textbf{And-Inverter Graph} (AIG) is a directed acyclic graph
         representing a Boolean function.
@@ -114,12 +116,18 @@ Boolean Functional Synthesis and its possible application to Cryptography}
         input with or without \textbf{inversion}.
     \item Many operations on AIGs are quite cheap
     \item Tooling available to manipulate and check: \textsc{AIGER, ABC, Boolector}
+    \item Notice: sub-circuits can be shared, e.g. intermediate line $x_1 \lor
+        x_3$ can be used by both $\psi_1$ and $\psi_2$.
+    \item Notice: once $\psi_1$ is computed, it can be used to compute $\psi_2$
+        --- but no cycles allowed of course
 \end{itemize}
-\bigskip
-
+\end{column}
+\begin{column}{0.28\textwidth}
 \begin{center}
-\includegraphics[width=0.5\textwidth]{And-inverter-graph.pdf}
+\includegraphics[scale=0.6]{And-inverter-graph.pdf}
 \end{center}
+\end{column}
+\end{columns}
 \end{frame}
 
 \begin{frame}{Motivation}
