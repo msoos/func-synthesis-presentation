@@ -53,10 +53,10 @@ Boolean Functional Synthesis and its possible application to Cryptography}
 \begin{frame}{High-Level Overview}
   \textbf{Boolean Functional Synthesis}:
   \begin{itemize}
-    \item Automatically \textbf{constructs Boolean functions} from logical
+    \item \textbf{Constructs executable functions} from logical/declarative
         specifications.
     \item Given \(\exists \vec{Y}\, \varphi(\vec{X}, \vec{Y})\),
-        find Skolem functions \(\vec{\psi}(\vec{X})\) such that:
+        find functions \(\vec{\psi}(\vec{X})\) such that:
         \[
             \forall \vec{X}\, \left( \exists \vec{Y}\, \varphi(\vec{X}, \vec{Y}) \equiv \varphi(\vec{X}, \vec{\psi}(\vec{X})) \right)
         \]
@@ -84,24 +84,25 @@ Boolean Functional Synthesis and its possible application to Cryptography}
 
 \begin{frame}{Classic example: Multiplier Circuit}
 \begin{columns}
-\begin{column}{0.48\textwidth}
+\begin{column}{0.68\textwidth}
         \[
             \forall \vec{X}\, \left( \exists \vec{Y}\, \varphi(\vec{X}, \vec{Y}) \equiv \varphi(\vec{X}, \vec{\psi}(\vec{X})) \right)
         \]
 \begin{itemize}
     \item Relational/decarative spec: $A * B = C$
-    \item $X$ is $C$
-    \item $Y$ is $(A, B)$
+    \item Easily convertible to CNF via simple blasting
+    \item $X$ is $C$, $Y$ is $(A, B)$
     \item Hence, $\psi(C) = (A, B)$
     \item Notice: no solution if $C$ is prime
     \item Solves the factorization problem
+    \item Obviously cannot scale or RSA would be broken
 \end{itemize}
 \end{column}
 %%%
-\begin{column}{0.48\textwidth}
-    \begin{center}
+\begin{column}{0.28\textwidth}
+    % \begin{center}
     \includegraphics[scale=1.2]{mult.pdf}
-    \end{center}
+    % \end{center}
 \end{column}
 \end{columns}
 \end{frame}
@@ -115,11 +116,14 @@ Boolean Functional Synthesis and its possible application to Cryptography}
     \item Nodes represent \textbf{AND} operations, edges represent
         input with or without \textbf{inversion}.
     \item Many operations on AIGs are quite cheap
-    \item Tooling available to manipulate and check: \textsc{AIGER, ABC, Boolector}
+    \item Tooling available: \textsc{AIGER, ABC, Boolector}
     \item Notice: sub-circuits can be shared, e.g. intermediate line $x_1 \lor
         x_3$ can be used by both $\psi_1$ and $\psi_2$.
     \item Notice: once $\psi_1$ is computed, it can be used to compute $\psi_2$
         --- but no cycles allowed of course
+    \item Unless \emph{non-uniform exponential-time hypothesis} fails, there
+        exists skolem functions for which the size is exponential in $|\varphi|$,
+        i.e. the spec
 \end{itemize}
 \end{column}
 \begin{column}{0.28\textwidth}
@@ -233,6 +237,7 @@ Let's look at the \textbf{truth table} of \(\varphi\):
     \item BDD-based method: \textsc{RSynth} via \textsc{CUDD}
     \item Interpolation-based: \textsc{Unique}, using UNSAT proofs
     \item d-DNNF-based method: \textsc{d4}, \textsc{Ganak}
+    \item SynNNF-basded method: relaxed version of d-DNNF, hence more succinct
     \item Force-eliminate variable (last resort, exponential)
 \end{itemize}
 \end{frame}
@@ -247,39 +252,87 @@ Let's look at the \textbf{truth table} of \(\varphi\):
         \psi_{k+1}(\vec{x}, \psi_1, \ldots \psi_k) =
         \psi_{k+1}(\vec{x}, y_1, \ldots y_k)$
 \end{itemize}
-\bigskip
-
 \end{frame}
 
-\begin{frame}{Fully Defined Variables}
+\begin{frame}{Fully Defined Variables: Backbone Detection}
+Start with a CNF formula $ \varphi$. Use incremental SAT solving to:
 \begin{itemize}
-    \item Start with a CNF formula $ \varphi$
+    \item Identify variables that are forced via probing:
+        \begin{itemize}
+            \item If setting $y_k = T$ and propagating leads to UNSAT, then
+                $y_k = F$ is a backbone variable
+            \item If setting $y_k = F$ and propagating leads to UNSAT, then
+                $y_k = T$ is a backbone variable
+        \end{itemize}
     \item Identify variables that are forced via backbone detection
-        using \textsc{CadiBack}
-    \item Identify all equivalent variables using \textsc{Oracle}
-        in \textsc{SharpSAT-TD}
-    \item Identify fully defined variables and define them.
+        using \textsc{CadiBack}:
+        \begin{itemize}
+            \item Queries every variable to be true, in a smart way. Runs
+                \emph{full} SAT solver, not just propagation
+            \item If $SAT(\varphi \land y_1) = F$, then $y_1 = F$ is backbone
+            \item if $SAT(\varphi \land \neg y_1) = F$ then $y_1 = T$ is backbone
+            \item When query is True, we save the solution. If we see $y_k$ both
+                true and false in two solutions, we know it's not a backbone.
+            \item We can also check satisfying assignment if any literal
+                in it can be flipped -- easy to do via watchlists
+                datastructure of SAT solvers
+        \end{itemize}
 \end{itemize}
+\end{frame}
 
-\bigskip
+\begin{frame}{Fully Defined Variables: Equivalent Literal Detection}
+Use incremental SAT solving to:
+\begin{itemize}
+    \item Identify equivalent literals using Trajan's algorithm over the
+        Binary Implication Graph (BIG), to find strongly connected components (SCC).
+        $a\rightarrow b$, and $b\rightarrow c$, and $c\rightarrow a$ means:
+        $a = b = c$.
+    \item Identify equivalent literals using \textsc{Oracle}
+        in \textsc{SharpSAT-TD}:
+        \begin{itemize}
+            \item For every pair $(a,b)$ check if $\varphi \land (y_a \lor \neg
+                y_b)$ is UNSAT, if so, check if $\varphi \land (\neg y_a \lor
+                y_b)$ is UNSAT. If both UNSAT, then $y_a = \neg y_b$
+            \item Again, solution cache is useful: if a solution has $(y_a = T,
+                y_b = T)$, it's impossible that $y_a = \neg y_b$.
+            \item There are quadratic number of pairs: only do it with pairs that
+                appear often in clauses
+        \end{itemize}
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Fully Defined Variables: Padoa check \& Interpolant Generation}
+Identify fully defined variables and define them:
 \begin{itemize}
     \item Do quick query to check if $y_k$ is fully defined by $(\vec{x},
-        \vec{y} \backslash y_k)$
-    \item Make copy of $\varphi$, call it $\varphi'$ that has copy of
-        $\vec{x}$, call it $\vec{x'}$ and $\vec{y}$, call it $\vec{y'}$.
-    \item Force $\vec{x} = \vec{x'}$, force $y_k = \neg {y'}_k$
-    \item If UNSAT, then $y_k$ is fully determined by $\vec{x}$.
+        \vec{y} \backslash y_k)$:
+        \begin{itemize}
+        \item Make copy of $\varphi$, call it $\varphi'$ that has copy of
+            $\vec{x}$, call it $\vec{x'}$ and $\vec{y}$, call it $\vec{y'}$.
+        \item Force $\vec{x} = \vec{x'}$, force $y_k = \neg {y'}_k$
+        \item Notice: we can set $y_k=0$ and $y'_k=1$, because
+            there are only 2 cases, and they are symmetric
+        \item If UNSAT, then $y_k$ is fully determined by $\vec{x}$.
+        \end{itemize}
     \item Use \textsc{CaDiCaL} to produce proof of UNSAT
     \item Use McMillan paper's interpolant generation to extract circuit for
         $y_k$
+    \item This algorithm simply walks through the proof,
+        and generates a circuit for $y_k$.
 \end{itemize}
-\bigskip
-Avoid cycles above, i.e. it's not good if $y_1$ is defined by $y_2$, and $y_2$
-is defined by $y_1$.
-\bigskip
+\end{frame}
 
-Now everything that could be fully defined, is defined. It turns out, this is
-the easy part.
+\begin{frame}{Fully Defined Variables: Recap}
+\begin{itemize}
+    \item We can define $y$'s in terms of other $y$'s (and of course
+        $\vec{X}$), as long as there are no cycles
+    \item Of course the remaining variables still need to be defined
+        such that there are no cycles
+    \item But this can get rid of a lot of $y$'s, and we are \emph{only} left
+        with variables that are not fully defined
+    \item It turns out, this is the \emph{easy} part. Underdefined
+        variables are harder to compute a skolem function for.
+\end{itemize}
 \end{frame}
 
 \begin{frame}{Not Fully Defined Variables}
@@ -292,11 +345,18 @@ There are a number of ways to do this:
             \item Add repair constraints
             \item Goto 2
         \end{enumerate}
-    \item d-DNNF-based method: \textsc{d4}, \textsc{Ganak}
+    \item d-DNNF-based method: \textsc{d4}, \textsc{Ganak}:
+        \begin{enumerate}
+            \item Pick a variable $y_k$, start building d-DNNF, with $\vec{X}$ and
+                already computed $y$'s as projection variables
+            \item If $y_k$ is propagated, we can early-abort branch in d-DNNF
+        \end{enumerate}
 \end{itemize}
 \bigskip
 
-It's still early stage research: unknown what's best. Likely a combination.
+Guess-and-Repair should work well when it's highly under-defined and ML
+can guess a good decision tree. d-DNNF-based method should work well when
+the function is highly defined, and only a few cases are under-defined.
 \end{frame}
 
 \begin{frame}{Cryptography: direct use}
