@@ -29,18 +29,18 @@ Boolean Functional Synthesis and its possible application to Cryptography}
 \begin{frame}{A bit about myself}
 \begin{itemize}
 \item PhD from INRIA Grenoble, France
-\item Part-time research at Kuldeep Meel's group, authored::
+\item Part-time research at Kuldeep Meel's group, authored:
     \begin{itemize}
         \item \textbf{CryptoMiniSat} -- SAT solver with XORs
-        \item \textbf{Ganak\&ApproxMC} -- CNF counters
+        \item \textbf{Ganak\&ApproxMC} -- (approx) CNF counters
         \item \textbf{Arjun} -- CNF simplifier, also doing functional synthesis
         \item \textbf{Bosphorus} -- ANF simplifier
-        \item \textbf{Pepin} -- DNF counter
+        \item \textbf{Pepin} -- approx DNF counter
     \end{itemize}
 \item Worked in IT Security for 10+ years: hacking,
     threat modelling, risk management
-\item Working at Ethereum Foundation, now Argot Collective for the past $\approx3$
-    years: \textbf{hevm}
+\item Working at Ethereum Foundation (now Argot Collective):
+    \textbf{hevm} -- symbolic execution
 \end{itemize}
 \end{frame}
 
@@ -90,7 +90,7 @@ Boolean Functional Synthesis and its possible application to Cryptography}
         \]
 \begin{itemize}
     \item Relational/decarative spec: $A * B = C$
-    \item Easily convertible to CNF via simple blasting
+    \item Easily convertible to CNF via simple bit-blasting
     \item $X$ is $C$, $Y$ is $(A, B)$
     \item Hence, $\psi(C) = (A, B)$
     \item Notice: no solution if $C$ is prime
@@ -113,7 +113,7 @@ Boolean Functional Synthesis and its possible application to Cryptography}
 \begin{itemize}
     \item \textbf{And-Inverter Graph} (AIG) is a directed acyclic graph
         representing a Boolean function.
-    \item Nodes represent \textbf{AND} operations, edges represent
+    \item Nodes represent \textbf{and} operations, edges represent
         input with or without \textbf{inversion}.
     \item Many operations on AIGs are quite cheap
     \item Tooling available: \textsc{AIGER, ABC, Boolector}
@@ -198,6 +198,9 @@ Let's look at the \textbf{truth table} of \(\varphi\):
     1 & 1 & \textbf{X} & T\\
     \hline
 \end{tabular}
+\bigskip
+
+Where \textbf{X} is a don't care
 \end{frame}
 
 \begin{frame}{Example 2}
@@ -220,8 +223,8 @@ Let's look at the \textbf{truth table} of \(\varphi\):
     \hline
     $x_1$ & $\mathbf{y}$ & $\varphi(x_1, y)$ \\
     \hline
-    0 & 0 & T\\
-    0 & 1 & \textbf{F}\\
+    0 & 0 & \textbf{F}\\
+    0 & 1 & T\\
     1 & 0 & T\\
     1 & 1 & \textbf{F}\\
     \hline
@@ -267,7 +270,7 @@ Start with a CNF formula $ \varphi$. Use incremental SAT solving to:
     \item Identify variables that are forced via backbone detection
         using \textsc{CadiBack}:
         \begin{itemize}
-            \item Queries every variable to be true, in a smart way. Runs
+            \item Queries every literal, in a smart way. Runs
                 \emph{full} SAT solver, not just propagation
             \item If $SAT(\varphi \land y_1) = F$, then $y_1 = F$ is backbone
             \item if $SAT(\varphi \land \neg y_1) = F$ then $y_1 = T$ is backbone
@@ -276,6 +279,7 @@ Start with a CNF formula $ \varphi$. Use incremental SAT solving to:
             \item We can also check satisfying assignment if any literal
                 in it can be flipped -- easy to do via watchlists
                 datastructure of SAT solvers
+            \item No time-out, it's expensive but useful
         \end{itemize}
 \end{itemize}
 \end{frame}
@@ -290,13 +294,14 @@ Use incremental SAT solving to:
     \item Identify equivalent literals using \textsc{Oracle}
         in \textsc{SharpSAT-TD}:
         \begin{itemize}
-            \item For every pair $(a,b)$ check if $\varphi \land (y_a \lor \neg
-                y_b)$ is UNSAT, if so, check if $\varphi \land (\neg y_a \lor
+            \item For every pair $(a,b)$ check if $\varphi \land \neg (y_a \lor \neg
+                y_b)$ is UNSAT, if so, check if $\varphi \land \neg (\neg y_a \lor
                 y_b)$ is UNSAT. If both UNSAT, then $y_a = \neg y_b$
             \item Again, solution cache is useful: if a solution has $(y_a = T,
                 y_b = T)$, it's impossible that $y_a = \neg y_b$.
             \item There are quadratic number of pairs: only do it with pairs that
                 appear often in clauses
+            \item Use time-out to stop search
         \end{itemize}
 \end{itemize}
 \end{frame}
