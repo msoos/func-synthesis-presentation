@@ -36,6 +36,8 @@ Boolean Functional Synthesis and its possible application to Cryptography}
         \item \textbf{Arjun} -- CNF simplifier, also doing functional synthesis
         \item \textbf{Bosphorus} -- ANF simplifier
         \item \textbf{Pepin} -- approx DNF counter
+        \item \textbf{UniGen} -- uniform CNF sampler
+        \item \textbf{CMSGen} -- almost-uniform CNF sampler
     \end{itemize}
 \item Worked in IT Security for 10+ years: hacking,
     threat modelling, risk management
@@ -331,9 +333,9 @@ Identify fully defined variables and define them:
 \begin{itemize}
     \item We can define $y$'s in terms of other $y$'s (and of course
         $\vec{X}$), as long as there are no cycles
-    \item Of course the remaining variables still need to be defined
+    \item The remaining $y$ variables still need to be defined
         such that there are no cycles
-    \item But this can get rid of a lot of $y$'s, and we are \emph{only} left
+    \item This can get rid of a lot of $y$'s, and we are \emph{only} left
         with variables that are not fully defined
     \item It turns out, this is the \emph{easy} part. Underdefined
         variables are harder to compute a skolem function for.
@@ -345,9 +347,9 @@ There are a number of ways to do this:
 \begin{itemize}
     \item Guess-and-Repair: \textsc{Manthan} algorithm
         \begin{enumerate}
-            \item Get samples, run ML to create decision tree
-            \item Compute counterexample, minimize it
-            \item Add repair constraints
+            \item Get samples (\textsc{CMSGen}), run ML to create decision tree
+            \item Compute counterexample, minimize it using a MaxSAT solver
+            \item Add repair constraint over the counterexample
             \item Goto 2
         \end{enumerate}
     \item d-DNNF-based method: \textsc{d4}, \textsc{Ganak}:
